@@ -1,11 +1,14 @@
 # Отчёт о проделанной работе по настройке сервера с использованием Ansible
+
 * Автор: Zabudico Alexandr (zabudico@DESKTOP-IIHR7IH)
 * Дата: 20 октября 2025 года
 
-## Цель: \
+## Цель: 
+
 Автоматизированное развертывание статического сайта на Nginx и создание технического пользователя deploy с SSH-доступом по ключу и правами sudo без пароля на сервере Ubuntu 18.04.6 LTS. Работа выполнена с использованием Ansible playbook'ов, с учётом Extended Security Maintenance (ESM) для обновлений системы.
 
 ### 1. Введение
+
 Данный отчёт документирует процесс настройки сервера, включая подготовку окружения, создание файлов, разработку и запуск двух Ansible playbook'ов, а также верификацию результатов. Все действия выполнены на локальной машине DESKTOP-IIHR7IH (Ubuntu 18.04.6 LTS), где Ansible работает в режиме localhost (локальное подключение).
 
 Ключевые вызовы и решения:
@@ -14,13 +17,15 @@
 Исправление ошибок YAML-структуры и путей к файлам в playbook'ах.
 Решение проблем с правами доступа (403 Forbidden для сайта, SSH-авторизация).
 
-Общее время работы: ~45 минут (включая отладку).
-Версия Ansible: 2.5.1+dfsg-1ubuntu0.1+esm5.
-Python: 3.6.9.
-Nginx: 1.14.0-0ubuntu1.11+esm1.
+* Общее время работы: ~45 минут (включая отладку).
+* Версия Ansible: 2.5.1+dfsg-1ubuntu0.1+esm5.
+* Python: 3.6.9.
+* Nginx: 1.14.0-0ubuntu1.11+esm1.
 
 ### 2. Подготовка окружения
+
 #### 2.1. Обновление системы и активация ESM
+
 Система обновлена для обеспечения безопасности и совместимости. ESM активирован для доступа к обновлениям до 2028 года.
 Выполненные команды:
 
@@ -63,6 +68,7 @@ SSH-сервер запущен и доступен.
 [Скриншот: Вывод ansible --version и sudo systemctl status ssh].
 
 #### 2.3. Создание структуры проекта и файлов
+
 Создан проект ansible-playbooks/ с директориями files/, playbooks/, inventory/.
 Файлы в files/:
 
@@ -71,6 +77,7 @@ site.tar.gz: Архив с index.html и style.css (создан через tar 
 deploy.pub: Публичный SSH-ключ (сгенерирован ssh-keygen -t ed25519).
 
 Команды создания:
+
 ```bash
 mkdir -p {playbooks,files,inventory}
 cat > files/mysite.conf << 'EOF'  # Код конфига из задания
@@ -88,6 +95,7 @@ chmod 600 ~/.ssh/deploy_key
 ```
 
 Проверка:
+
 ```bash
 ls -l files/  # Все файлы присутствуют
 tar -tzf files/site.tar.gz  # index.html, style.css
@@ -99,6 +107,7 @@ cat files/deploy.pub  # SSH-ключ
 [Скриншот: Вывод ls -l files/ и tar -tzf files/site.tar.gz].
 
 ### 3. Разработка и запуск playbook'ов
+
 #### 3.1. Inventory и конфигурация Ansible
 
 hosts.ini:
@@ -196,6 +205,7 @@ ansible all -m ping
 ```
 
 Запуск:
+
 ```bash
 ansible-playbook playbooks/01_static_site.yml --check -vvv  # Dry-run
 ansible-playbook playbooks/01_static_site.yml -vvv  # Полный запуск
@@ -203,16 +213,29 @@ ansible-playbook playbooks/01_static_site.yml -vvv  # Полный запуск
 
 Результаты:
 
-TaskСтатусИзмененияInstall nginxChangedУстановлен Nginx 1.14.0.Ensure enabledChangedСлужба запущена.Create /var/www/mysiteChangedДиректория создана.Unarchive site.tar.gzChangedФайлы распакованы.Copy mysite.confChangedКонфиг скопирован.Activate symlinkChangedSymlink создан.Remove defaultChangedDefault удалён.Restart nginxChangedПерезапуск.
+Task                    Статус     Изменения
+Install nginx           Changed    Установлен Nginx 1.14.0.
+Ensure enabled          Changed    Служба запущена.
+Create /var/www/mysite  Changed    Директория создана.
+Unarchive site.tar.gz   Changed    Файлы распакованы.
+Copy mysite.conf        Changed    Конфиг скопирован. 
+Activate symlink        Changed    Symlink создан.
+Remove default          Changed    Default удалён.
+Restart nginx           Changed    Перезапуск.
+
 Проблемы и исправления:
 
-Ошибка путей: Исправлено на ../files/.
-403 Forbidden: Исправлено правами chown -R www-data:www-data /var/www/mysite.
+* Ошибка путей: Исправлено на ../files/.
+* 403 Forbidden: Исправлено правами chown -R www-data:www-data /var/www/mysite.
 
-[Скриншот: Вывод ansible-playbook 01_static_site.yml -vvv (успешный запуск)].
+Вывод ansible-playbook 01_static_site.yml -vvv (успешный запуск)
+
 #### 3.3. Playbook 2: 02_deploy_user.yml
+
 Код playbook'а (после исправлений):
-yaml---
+
+```yaml
+---
 - name: Setup deploy user with SSH key and sudoers
   hosts: webservers
   become: yes
@@ -260,28 +283,38 @@ yaml---
         path: /etc/sudoers.d/deploy
         state: absent
       when: visudo_result.rc != 0
+```
+
 Запуск:
+
 ```bash
 ansible-playbook playbooks/02_deploy_user.yml --check -vvv  # Dry-run
 ansible-playbook playbooks/02_deploy_user.yml -vvv  # Полный запуск
 ```
 
 Результаты:
-Task Статус Изменения Create user deployOKПользователь создан (UID 1006).Create .ssh dirOKДиректория создана.Add key to authorized_keysChangedКлюч добавлен.Create sudoersChangedФайл создан, проверен.Check syntaxOKparsed OK.Remove if failedSkippedНе нужно.
+
+Task                          Статус               Изменения 
+Create user deploy            OK                   Пользователь создан (UID 1006).
+Create .ssh dir               OK                   Директория создана.
+Add key to authorized_keys    Changed              Ключ добавлен. 
+Create sudoers                Changed              Файл создан, проверен.
+Check syntax                  OK                   parsed OK.
+Remove if failed              Skipped              Не нужно.
 
 Проблемы и исправления:
 
-Ошибка lookup: Исправлено на ../files/deploy.pub.
-Ошибка conditional: Убрано из-за skip в check mode.
+* Ошибка lookup: Исправлено на ../files/deploy.pub.
+* Ошибка conditional: Убрано из-за skip в check mode.
 
-[Скриншот: Вывод ansible-playbook 02_deploy_user.yml -vvv (успешный запуск)].
+Вывод ansible-playbook 02_deploy_user.yml -vvv (успешный запуск)
 
 ### 4. Верификация результатов
 #### 4.1. Проверка сайта
 
-Доступ: curl http://localhost — возвращает HTML с "Привет от Ansible!".
-Лог: sudo tail /var/log/nginx/mysite_access.log — фиксирует запросы.
-Статус Nginx: sudo systemctl status nginx — active (running).
+* Доступ: curl http://localhost — возвращает HTML с "Привет от Ansible!".
+* Лог: sudo tail /var/log/nginx/mysite_access.log — фиксирует запросы.
+* Статус Nginx: sudo systemctl status nginx — active (running).
 
 <img width="1058" height="372" alt="image" src="https://github.com/user-attachments/assets/cda7eccb-5bb6-4712-9a54-44b9651c9077" />
 
@@ -289,10 +322,12 @@ Task Статус Изменения Create user deployOKПользовател�
 
 #### 4.2. Проверка пользователя deploy
 
+```bash
 SSH: ssh -i ~/.ssh/deploy_key deploy@localhost — успешное подключение.
 Sudo: sudo -u deploy sudo whoami — root без пароля.
 Sudoers: sudo cat /etc/sudoers.d/deploy — правило применено.
 Authorized keys: sudo cat /home/deploy/.ssh/authorized_keys — ключ присутствует.
+```
 
 <img width="1056" height="855" alt="image" src="https://github.com/user-attachments/assets/5e0a6023-7456-43f0-a4a7-6635a32ab806" />
 
@@ -302,9 +337,9 @@ Authorized keys: sudo cat /home/deploy/.ssh/authorized_keys — ключ при�
 
 #### 4.3. Общая проверка системы
 
-Ping Ansible: ansible all -m ping — pong.
-UFW: Порты 80/22 открыты.
-Обновления: Система актуальна (ESM включён).
+* Ping Ansible: ansible all -m ping — pong.
+* UFW: Порты 80/22 открыты.
+* Обновления: Система актуальна (ESM включён).
 
 <img width="1281" height="541" alt="image" src="https://github.com/user-attachments/assets/3c71825f-fb7e-4ad9-9d45-68c191c7d147" />
 
@@ -313,16 +348,16 @@ UFW: Порты 80/22 открыты.
 ### 5. Выводы
 
 Успех: Оба playbook'а работают идемпотентно (повторный запуск не меняет состояние). Сайт обслуживается, пользователь готов к деплою.
+
 Время: ~45 минут (включая отладку YAML и прав).
 
-Улучшения:
+#### Улучшения:
 
-Добавить переменные в group_vars/ для кастомизации (e.g., имя пользователя).
-Интегрировать с Git для версионирования.
-Тестировать на удалённом сервере (изменить hosts.ini на IP).
+* Добавить переменные в group_vars/ для кастомизации (e.g., имя пользователя).
+* Интегрировать с Git для версионирования.
+* Тестировать на удалённом сервере (изменить hosts.ini на IP).
 
-
-Рекомендации по безопасности:
+#### Рекомендации по безопасности:
 
 Удалить NOPASSWD:ALL после тестирования (заменить на конкретные команды).
 Включить UFW: sudo ufw --force enable.
@@ -330,4 +365,5 @@ UFW: Порты 80/22 открыты.
 
 Подпись: Zabudico A
 Дата: 20 октября 2025 года
+
 
