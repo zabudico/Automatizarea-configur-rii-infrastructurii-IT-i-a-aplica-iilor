@@ -363,7 +363,9 @@ Authorized keys: sudo cat /home/deploy/.ssh/authorized_keys — ключ при�
 Включить UFW: sudo ufw --force enable.
 Мониторинг: sudo tail -f /var/log/nginx/mysite_error.log.
 
-Подпись: Zabudico A
-Дата: 20 октября 2025 года
+                                                                                                                                                                          Подпись: Zabudico A
+                                                                                                                                                                                
+                                                                                                                                                                          Дата: 20 октября 2025 года
+
 
 
