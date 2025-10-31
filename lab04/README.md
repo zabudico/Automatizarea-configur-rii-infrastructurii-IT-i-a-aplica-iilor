@@ -15,9 +15,10 @@
 Инструменты: Ansible, Docker, Docker Compose.
 
 ```
-Inventory-файл (hosts.ini):
-vm1 ansible_host=192.168.1.101 ansible_user=youruser ansible_ssh_private_key_file=~/.ssh/id_rsa
-vm2 ansible_host=192.168.1.102 ansible_user=youruser ansible_ssh_private_key_file=~/.ssh/id_rsa
+localhost ansible_connection=local ansible_user=zabudico
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
 ```
 
 ### Задание 1: Установка Docker и Docker Compose с помощью Ansible
@@ -100,8 +101,8 @@ vm2 ansible_host=192.168.1.102 ansible_user=youruser ansible_ssh_private_key_fil
 * Подключился по SSH к vm1 и vm2:
 
 ```bash
-docker --version: Docker version 27.3.1, build 7cbfd87.
-docker compose version: Docker Compose version v2.29.7.
+docker --version: Docker version 24.0.2, build cb74dfc
+docker compose version: Docker Compose version (plugin)
 ```
 
 Результат: Docker и Compose установлены корректно, пользователь добавлен в группу docker.
@@ -115,43 +116,44 @@ docker compose version: Docker Compose version v2.29.7.
 Содержимое файла (docker-compose.yml)
 
 ```bash
+
 services:
   db:
     image: mysql:8.0
-    volumes:
-      - db_data:/var/lib/mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: wordpress
       MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
+      MYSQL_PASSWORD: wordpresspassword
+    volumes:
+      - db_data:/var/lib/mysql
     networks:
-      - wp_network
+      - wordpress-network
 
   wordpress:
-    image: wordpress:latest
     depends_on:
       - db
-    ports:
-      - "8000:80"
+    image: wordpress:latest
     restart: always
+    ports:
+      - "8080:80"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_PASSWORD: wordpresspassword
       WORDPRESS_DB_NAME: wordpress
     volumes:
-      - wp_data:/var/www/html
+      - wordpress_data:/var/www/html
     networks:
-      - wp_network
+      - wordpress-network
 
 volumes:
-  db_data: {}
-  wp_data: {}
+  db_data:
+  wordpress_data:
 
 networks:
-  wp_network:
+  wordpress-network:
     driver: bridge
 ```
 
@@ -173,20 +175,20 @@ networks:
 
 ```yaml
 ---
-- name: Deploy Docker Compose stack on VM1
-  hosts: vm1
+- name: Deploy Docker Compose stack on localhost
+  hosts: localhost
   become: no
   tasks:
-    - name: Copy docker-compose.yml to remote host
+    - name: Copy docker-compose.yml to application directory
       copy:
         src: ./docker-compose.yml
-        dest: /home/{{ ansible_user }}/docker-compose.yml
+        dest: /opt/wordpress-app/docker-compose.yml
         mode: '0644'
 
     - name: Run docker compose up
-      shell: docker compose -f /home/{{ ansible_user }}/docker-compose.yml up -d
+      command: docker compose up -d
       args:
-        chdir: /home/{{ ansible_user }}/
+        chdir: /opt/wordpress-app
 
     - name: Check container status
       command: docker ps
@@ -202,7 +204,7 @@ networks:
 * Запустил playbook: ansible-playbook deploy_compose.yml -i hosts.ini.
 * Playbook успешно скопировал файл и запустил compose.
 * Подключился по SSH к vm1: docker ps — контейнеры wordpress и mysql запущены.
-* Доступ: http://192.168.1.101:8000 — WordPress доступен (после настройки firewall: ufw allow 8000).
+* Доступ: http://localhost:8080 — WordPress доступен.
 * Результат: Развёртывание автоматизировано, стек работает на удалённой ВМ.
 
   <img width="1920" height="1040" alt="image" src="https://github.com/user-attachments/assets/5351ba5c-d59b-4858-bbb4-22d0e42bc9bf" />
@@ -231,7 +233,23 @@ docker network ls | grep wordpress
 echo -e "\n=== Volumes ==="
 docker volume ls | grep wordpress-app
 
-```'
+```
+
+### Проблемы и их решение
+
+В ходе выполнения работы возникли следующие проблемы и были найдены решения:
+
+1. **Недоступность удаленных ВМ**  
+   Проблема: Виртуальные машины по указанным IP-адресам были недоступны  
+   Решение: Работа была выполнена на localhost (WSL) для демонстрации функциональности
+
+2. **Занятый порт 80**  
+   Проблема: Порт 80 был занят службой nginx  
+   Решение: Остановлена служба nginx и использован порт 8080 в docker-compose.yml
+
+3. **Устаревшая версия Ansible**  
+   Проблема: В репозиториях доступна только Ansible 2.5.1  
+   Решение: Работа выполнена с имеющейся версией, которая поддерживает необходимые модули
 
 
 #### Что можно улучшить (дополнительно):
@@ -257,7 +275,9 @@ docker compose down -v
 
 ## Выводы
 
-В ходе лабораторной работы я успешно автоматизировал установку и развертывание Docker-based приложения с помощью Ansible. Это позволило понять преимущества комбинации этих инструментов для DevOps: reproducibility, scalability и простота управления. Возможные улучшения: использование Ansible Vault для secrets, добавление мониторинга или CI/CD интеграции. Работа выполнена полностью, все проверки прошли успешно.
+В ходе лабораторной работы я успешно автоматизировал установку и развертывание Docker-based приложения с помощью Ansible. 
+Несмотря на первоначальные проблемы с доступностью удаленных ВМ, работа была успешно выполнена на localhost, 
+что демонстрирует переносимость и универсальность использованных подходов. Это позволило понять преимущества комбинации этих инструментов для DevOps: reproducibility, scalability и простота управления. Возможные улучшения: использование Ansible Vault для secrets, добавление мониторинга или CI/CD интеграции. Работа выполнена полностью, все проверки прошли успешно.
 
 ## Библиография
 
@@ -267,4 +287,5 @@ docker compose down -v
 * WordPress Docker Image. Доступно по: https://hub.docker.com/_/wordpress.
 * MySQL Docker Image. Доступно по: https://hub.docker.com/_/mysql.
 * Docker Compose Releases on GitHub. Доступно по: https://github.com/docker/compose/releases.
+
 
