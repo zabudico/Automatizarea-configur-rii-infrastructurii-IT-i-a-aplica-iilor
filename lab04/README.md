@@ -205,6 +205,56 @@ networks:
 * Доступ: http://192.168.1.101:8000 — WordPress доступен (после настройки firewall: ufw allow 8000).
 * Результат: Развёртывание автоматизировано, стек работает на удалённой ВМ.
 
+  <img width="1920" height="1040" alt="image" src="https://github.com/user-attachments/assets/5351ba5c-d59b-4858-bbb4-22d0e42bc9bf" />
+
+  <img width="1920" height="1041" alt="image" src="https://github.com/user-attachments/assets/047286a0-af93-4284-bf29-256487576e99" />
+
+  <img width="1336" height="567" alt="image" src="https://github.com/user-attachments/assets/2fbf3ed0-0a43-424e-a375-fbc524bb7e12" />
+
+
+  ```bash
+
+# 1. Проверка Docker
+echo "=== Docker ==="
+docker --version
+docker compose version
+
+# 2. Проверка контейнеров
+echo -e "\n=== Контейнеры ==="
+docker ps
+
+# 3. Проверка сети
+echo -e "\n=== Сети ==="
+docker network ls | grep wordpress
+
+# 4. Проверка volumes
+echo -e "\n=== Volumes ==="
+docker volume ls | grep wordpress-app
+
+```'
+
+
+#### Что можно улучшить (дополнительно):
+Вернуть nginx после завершения лабораторной работы:
+
+```bash
+sudo systemctl enable nginx
+sudo systemctl start nginx
+```
+
+Остановить приложение когда закончите:
+
+```bash
+cd /opt/wordpress-app
+docker compose down
+```
+
+Очистить ресурсы полностью:
+
+```bash
+docker compose down -v
+```
+
 ## Выводы
 
 В ходе лабораторной работы я успешно автоматизировал установку и развертывание Docker-based приложения с помощью Ansible. Это позволило понять преимущества комбинации этих инструментов для DevOps: reproducibility, scalability и простота управления. Возможные улучшения: использование Ansible Vault для secrets, добавление мониторинга или CI/CD интеграции. Работа выполнена полностью, все проверки прошли успешно.
@@ -217,3 +267,4 @@ networks:
 * WordPress Docker Image. Доступно по: https://hub.docker.com/_/wordpress.
 * MySQL Docker Image. Доступно по: https://hub.docker.com/_/mysql.
 * Docker Compose Releases on GitHub. Доступно по: https://github.com/docker/compose/releases.
+
