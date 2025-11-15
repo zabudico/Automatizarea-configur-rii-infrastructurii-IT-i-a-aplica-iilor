@@ -217,22 +217,29 @@ networks:
   ```bash
 
 # 1. Проверка Docker
+```
 echo "=== Docker ==="
 docker --version
 docker compose version
+```
 
 # 2. Проверка контейнеров
+```
 echo -e "\n=== Контейнеры ==="
 docker ps
-
+```
 # 3. Проверка сети
+
+```
 echo -e "\n=== Сети ==="
 docker network ls | grep wordpress
+```
 
 # 4. Проверка volumes
+
+```
 echo -e "\n=== Volumes ==="
 docker volume ls | grep wordpress-app
-
 ```
 
 ### Проблемы и их решение
@@ -253,6 +260,7 @@ docker volume ls | grep wordpress-app
 
 
 #### Что можно улучшить (дополнительно):
+
 Вернуть nginx после завершения лабораторной работы:
 
 ```bash
@@ -287,5 +295,6 @@ docker compose down -v
 * WordPress Docker Image. Доступно по: https://hub.docker.com/_/wordpress.
 * MySQL Docker Image. Доступно по: https://hub.docker.com/_/mysql.
 * Docker Compose Releases on GitHub. Доступно по: https://github.com/docker/compose/releases.
+
 
 
